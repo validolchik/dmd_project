@@ -182,24 +182,31 @@ def inserting_storekeepers():
 # inserting appointments
 def inserting_appointments():
     cur.execute("SELECT person_id FROM doctor;")
-
     doctors_id = cur.fetchall()
+    cur.execute("SELECT person_id FROM patient;")
+    patients_id = cur.fetchall()
+    cur.execute("SELECT person_id FROM nurse;")
+    nurses_id = cur.fetchall()
+    cur.execute("SELECT person_id FROM receptionist;")
+    recs_id = cur.fetchall()
 
     for doctor in doctors_id:
         for i in range(210):
             room = fake.random_int(min=1, max=number_of_rooms, step=1)
             app_time = fake.date_time_between(start_date="-10y", end_date="now", tzinfo=None)
 
-            cur.execute("SELECT person_id FROM patient ORDER BY random() LIMIT 1;")
-            patient_id = int(cur.fetchone()[0])
-
+            # cur.execute("SELECT person_id FROM patient ORDER BY random() LIMIT 1;")
+            # patient_id = int(cur.fetchone()[0])
+            patient_id = random.choice(patients_id)[0]
+            nurse_id = random.choice(nurse_id)[0]
+            rec_id = random.choice(recs_id)[0]
             doctor_id = doctor[0]
 
-            cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
-            nurse_id = int(cur.fetchone()[0])
+            # cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
+            # nurse_id = int(cur.fetchone()[0])
 
-            cur.execute("SELECT person_id FROM receptionist ORDER BY random() LIMIT 1;")
-            rec_id = int(cur.fetchone()[0])
+            # cur.execute("SELECT person_id FROM receptionist ORDER BY random() LIMIT 1;")
+            # rec_id = int(cur.fetchone()[0])
 
             query = "INSERT INTO appointment(app_time, room, patient_id, doctor_id, nurse_id, rec_id) " \
                     "VALUES (%s, %s, %s, %s, %s, %s);"
@@ -418,6 +425,40 @@ def inserting_invoices():
             write_into_file(query)
 
 
+def inserting_manage_invoices():
+    print("Start manage_invoice")
+    cur.execute("select person_id from accountant;")
+    accountants = cur.fetchall()
+
+    cur.execute("select inv_id from invoice;")
+    invoices = cur.fetchall()
+
+    for invoice in invoices:
+        invoice_id = invoice[0]
+        accountant_id = random.choice(accountants)[0]
+        query = "insert into manage_invoice(acc_id, inv_id) values (%s, %s);"
+        cur.execute(query, (accountant_id, invoice_id))
+        query = query % (accountant_id, invoice_id)
+        write_into_file(query)
+
+
+def inserting_complete_order():
+    cur.execute("select order_id from \"order\";")
+    orders = cur.fetchall()
+
+    cur.execute("select person_id from storekeeper;")
+    stks = cur.fetchall()
+
+    for order in orders:
+        order_id = order[0]
+        stk_id = random.choice(stks)[0]
+        query = "insert into complete_order(order_id, stk_id) values (%s, %s);"
+        cur.execute(query, (order_id, stk_id))
+        query = query % (order_id, stk_id)
+        write_into_file(query)
+
+
+# cur.execute("delete from complete_order;")
 # cur.execute("delete from manage_invoice;")
 # cur.execute("delete from invoice;")
 # cur.execute("delete from order_medicine;")
@@ -458,8 +499,9 @@ def inserting_invoices():
 # inserting_order()
 # inserting_order_ser()
 # inserting_order_med()
-inserting_invoices()
-
+# inserting_invoices()
+# inserting_manage_invoices()
+# inserting_complete_order()
 
 # Make the changes to the database persistent
 con.commit()
