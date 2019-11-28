@@ -114,7 +114,6 @@ def inserting_nurses():
         query_id = create_person_female()
         query_person = query_id[0]
         person_id = query_id[1]
-        write_into_file(query_person)
 
         length_of_service = fake.random_int(min=3, max=20, step=1)
         salary = fake.random_int(min=20000, max=30000, step=2000)
@@ -132,7 +131,6 @@ def inserting_accountants():
         query_id = create_person_female()
         query_person = query_id[0]
         person_id = query_id[1]
-        write_into_file(query_person)
 
         length_of_service = fake.random_int(min=3, max=20, step=1)
         salary = fake.random_int(min=20000, max=40000, step=2000)
@@ -150,7 +148,6 @@ def inserting_receptionists():
         query_id = create_person_female()
         query_person = query_id[0]
         person_id = query_id[1]
-        write_into_file(query_person)
 
         length_of_service = fake.random_int(min=3, max=20, step=1)
         salary = fake.random_int(min=20000, max=40000, step=2000)
@@ -168,7 +165,6 @@ def inserting_storekeepers():
         query_id = create_person_female()
         query_person = query_id[0]
         person_id = query_id[1]
-        write_into_file(query_person)
         length_of_service = fake.random_int(min=3, max=20, step=1)
         salary = fake.random_int(min=20000, max=40000, step=2000)
         query_storekeeper = "INSERT INTO storekeeper (person_id, length_of_service, salary) VALUES (%s, %s, %s);"\
