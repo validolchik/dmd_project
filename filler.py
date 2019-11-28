@@ -10,11 +10,10 @@ con = psycopg2.connect(
     port="49391"
 )
 
-# http://localhost:60118
 cur = con.cursor()
 fake = Faker()
 
-file_output = open("inserts.sql", "w+")
+file_output = open("populate_postgres.sql", "w+")
 file_writing = False
 number_of_rooms = 20
 
@@ -54,13 +53,6 @@ def create_person_female():
     query_person = query_person % (ssn, address, name, surname, date_of_birth, sex)
     person_id = cur.fetchone()[0]
     return [query_person, person_id]
-
-
-def create_order():
-    cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
-    doctor_id = int(cur.fetchone()[0])
-    query_order = "INSERT INTO order (doc_id) VALUES (%s) RETURNING order_id;"
-    order_id = cur.fetchone()[0]
 
 
 # inserting patients
@@ -124,7 +116,7 @@ def inserting_nurses():
         write_into_file(query_person)
 
         length_of_service = fake.random_int(min=3, max=20, step=1)
-        salary = fake.random_int(min=20000, max=40000, step=2000)
+        salary = fake.random_int(min=20000, max=30000, step=2000)
 
         query_nurse = "INSERT INTO nurse (person_id, length_of_service, salary) VALUES (%s, %s, %s);"
         cur.execute(query_nurse % (person_id, length_of_service, salary))
@@ -266,6 +258,12 @@ def inserting_reports():
     cur.execute("select chart_id, start_date from medical_chart;")
     charts = cur.fetchall()
 
+    cur.execute("SELECT person_id FROM doctor;")
+    doctors_id = cur.fetchall()
+
+    cur.execute("SELECT person_id FROM nurse;")
+    nurses_id = cur.fetchall()
+
     for chart in charts:
         for i in range(10):
             chart_id, chart_start_date = chart[0], chart[1]
@@ -273,11 +271,10 @@ def inserting_reports():
             cr_time = fake.date_time_between(start_date=chart_start_date, end_date="now", tzinfo=None)
 
             res_cons = fake.paragraph(nb_sentences=fake.random_int(min=1, max=3, step=1), variable_nb_sentences=True, ext_word_list=None)
-            cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
-            doctor_id = int(cur.fetchone()[0])
 
-            cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
-            nurse_id = int(cur.fetchone()[0])
+            doctor_id = random.choice(doctors_id)[0]
+
+            nurse_id = random.choice(nurses_id)[0]
 
             query = "insert into report(create_time, results_of_consultation, chart_id, doctor_id, nurse_id) " \
                     "values (%s, %s, %s, %s, %s);"
@@ -333,15 +330,19 @@ def inserting_nurse_assigned():
 
 
 def inserting_req_med():
+    cur.execute("SELECT person_id FROM doctor;")
+    doctors_id = cur.fetchall()
+
+    cur.execute("SELECT person_id FROM nurse;")
+    nurses_id = cur.fetchall()
+
+    cur.execute("SELECT medicine_id FROM medicine;")
+    meds = cur.fetchall()
+
     for i in range(50):
-        cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
-        doctor_id = int(cur.fetchone()[0])
-
-        cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
-        nurse_id = int(cur.fetchone()[0])
-
-        cur.execute("SELECT medicine_id FROM medicine ORDER BY random() LIMIT 1;")
-        med_id = int(cur.fetchone()[0])
+        doctor_id = random.choice(doctors_id)[0]
+        nurse_id = random.choice(nurses_id)[0]
+        med_id = random.choice(meds)[0]
 
         query = "insert into request_medicine(doctor_id, nurse_id, medicine_id) VALUES (%s, %s, %s)"
         cur.execute(query, (doctor_id, nurse_id, med_id))
@@ -350,15 +351,19 @@ def inserting_req_med():
 
 
 def inserting_provide_serv():
+    cur.execute("SELECT person_id FROM doctor;")
+    doctors_id = cur.fetchall()
+
+    cur.execute("SELECT person_id FROM nurse;")
+    nurses_id = cur.fetchall()
+
+    cur.execute("SELECT service_id FROM service;")
+    sers = cur.fetchall()
+
     for i in range(50):
-        cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
-        doctor_id = int(cur.fetchone()[0])
-
-        cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
-        nurse_id = int(cur.fetchone()[0])
-
-        cur.execute("SELECT service_id FROM service ORDER BY random() LIMIT 1;")
-        ser_id = int(cur.fetchone()[0])
+        doctor_id = random.choice(doctors_id)[0]
+        nurse_id = random.choice(nurses_id)[0]
+        ser_id = random.choice(sers)[0]
 
         query = "insert into provide_service(doctor_id, nurse_id, ser_id) VALUES (%s, %s, %s)"
         cur.execute(query, (doctor_id, nurse_id, ser_id))
@@ -367,9 +372,10 @@ def inserting_provide_serv():
 
 
 def inserting_order():
+    cur.execute("SELECT person_id FROM doctor;")
+    doctors = cur.fetchall()
     for i in range(50):
-        cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
-        doctor_id = int(cur.fetchone()[0])
+        doctor_id = random.choice(doctor_id)[0]
         query_order = "INSERT INTO \"order\"(doc_id) VALUES (%s);"
         cur.execute(query_order % doctor_id)
         query_order = query_order % doctor_id
@@ -379,10 +385,12 @@ def inserting_order():
 def inserting_order_ser():
     cur.execute("select order_id from \"order\";")
     orders = cur.fetchall()
+
+    cur.execute('select service_id from service;')
+    sers = cur.fetchall()
     for order in orders:
         order_id = order[0]
-        cur.execute('select service_id from service order by random() limit 1;')
-        service_id = cur.fetchone()[0]
+        service_id = random.choice(sers)[0]
         query_order_serv = "insert into order_service(order_id, service) VALUES (%s, %s);"
         cur.execute(query_order_serv, (order_id, service_id))
         query_order_serv = query_order_serv % (order_id, service_id)
@@ -392,10 +400,13 @@ def inserting_order_ser():
 def inserting_order_med():
     cur.execute("select order_id from \"order\";")
     orders = cur.fetchall()
+
+    cur.execute('select medicine_id from medicine;')
+    meds = cur.fetchall()
+
     for order in orders:
         order_id = order[0]
-        cur.execute('select medicine_id from medicine order by random() limit 1;')
-        med_id = cur.fetchone()[0]
+        med_id = random.choice(meds)[0]
         query_order_serv = "insert into order_medicine(order_id, medicine) VALUES (%s, %s);"
         cur.execute(query_order_serv, (order_id, med_id))
         query_order_serv = query_order_serv % (order_id, med_id)
@@ -414,9 +425,16 @@ def inserting_invoices():
             payment_due = fake.date_between(start_date=invoice_date, end_date="today")
             tax_amount = fake.random_int(min=1, max=30, step=1)
             order_id = random.choice(orders_id)[0]
-            cur.execute("select price from medicine;")
+            cur.execute("select order_medicine.medicine "
+                        "from \"order\", order_medicine where order_medicine.order_id = %s;" % order_id)
+            medicine_id = cur.fetchone()[0]
+            cur.execute("select price from medicine where medicine_id = %s" % medicine_id)
             price_med = cur.fetchone()[0]
-            cur.execute("select price from service;")
+
+            cur.execute("select order_service.service "
+                        "from \"order\", order_service where order_service.order_id = %s;" % order_id)
+            service_id = cur.fetchone()[0]
+            cur.execute("select price from service where service.service_id = %s" % service_id)
             price_ser = cur.fetchone()[0]
             total = price_med + price_ser
             query = "insert into invoice(patient_id, invoice_date, payment_due_date, tax_amount, total_amount, inv_id) VALUES (%s, %s, %s, %s, %s, %s);"
