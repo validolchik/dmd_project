@@ -191,7 +191,7 @@ def inserting_appointments():
     query = "INSERT INTO appointment(app_time, room, patient_id, doctor_id, nurse_id, rec_id) VALUES "
 
     for doctor in doctors_id:
-        for i in range(210):
+        for i in range(101):
             room = fake.random_int(min=1, max=number_of_rooms, step=1)
             app_time = fake.date_time_between(start_date="-10y", end_date="now", tzinfo=None)
 
