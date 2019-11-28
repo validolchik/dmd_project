@@ -536,7 +536,7 @@ inserting_order_med()
 inserting_invoices()
 inserting_manage_invoices()
 inserting_complete_order()
-inserting_appointments_from_date("-90d", 40)
+inserting_appointments_from_date("-90d", 20)
 
 # Make the changes to the database persistent
 con.commit()
