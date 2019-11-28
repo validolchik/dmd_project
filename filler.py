@@ -227,6 +227,7 @@ def inserting_medicines():
     cur.execute(query)
     write_into_file(query)
 
+
 # inserting services
 def inserting_services():
     services = ["massage", "healing shower", "healing with dirt", "River mud", "Magnetoturbotron", "Prostate massage"]
@@ -322,7 +323,7 @@ def inserting_doctor_qual():
         for i in range(1, fake.random_int(min=1, max=3, step=1)):
             qual = fake.word(ext_word_list=fake_quals)
             fake_quals.remove(qual)
-            add = ('%s', %s),\n" % (qual, doc[0])
+            add = "('%s', %s),\n" % (qual, doc[0])
             query += add
     query = query[0:(len(query) - 2)] + ";"
     cur.execute(query)
