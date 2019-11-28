@@ -14,7 +14,7 @@ cur = con.cursor()
 fake = Faker()
 
 file_output = open("populate_postgres.sql", "w+")
-file_writing = False
+file_writing = True
 number_of_rooms = 20
 
 # cur.execute("DELETE FROM appointment;")
@@ -190,7 +190,7 @@ def inserting_appointments():
             # cur.execute("SELECT person_id FROM patient ORDER BY random() LIMIT 1;")
             # patient_id = int(cur.fetchone()[0])
             patient_id = random.choice(patients_id)[0]
-            nurse_id = random.choice(nurse_id)[0]
+            nurse_id = random.choice(nurses_id)[0]
             rec_id = random.choice(recs_id)[0]
             doctor_id = doctor[0]
 
