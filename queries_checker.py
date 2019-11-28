@@ -7,7 +7,7 @@ con = psycopg2.connect(
 	user = "postgres",
 	password = "postgres",
 	host = "localhost",
-	port = "60631"
+	port = "49391"
 )
 
 cur = con.cursor()
@@ -26,19 +26,8 @@ fake = Faker()
 # arr_medic_id = cur.fetchall()
 # print(arr_medic_id)
 
-cur.execute("delete from person;")
-ssn, address, name, surname, date_of_birth, sex = \
-            fake.itin(), fake.address(), fake.first_name_male(), \
-            fake.last_name_male(), fake.date_of_birth(tzinfo=None, minimum_age=15, maximum_age=115), 'm'
-
-address = address.replace("\n", ", ")
-query = "INSERT INTO person (ssn, address, name, surname, date_of_birth, sex) \
-            VALUES ('%s', '%s', '%s', '%s', '%s', '%s') RETURNING person_id;" % \
-		(ssn, address, name, surname, date_of_birth, sex)
-cur.execute(query)
-value = cur.fetchone()[0]
-print(value)
-
+cur.execute("select chart_id, start_date from medical_chart;")
+print(cur.fetchall())
 
 # Make the changes to the database persistent
 con.commit()

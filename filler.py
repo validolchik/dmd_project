@@ -7,15 +7,16 @@ con = psycopg2.connect(
     user="postgres",
     password="postgres",
     host="localhost",
-    port="60631"
+    port="49391"
 )
 
 # http://localhost:60118
 cur = con.cursor()
 fake = Faker()
 
-file_output = open("inserts.txt", "w+")
+file_output = open("inserts.sql", "w+")
 file_writing = False
+number_of_rooms = 20
 
 # cur.execute("DELETE FROM appointment;")
 # cur.execute("DELETE FROM person;")
@@ -53,6 +54,13 @@ def create_person_female():
     query_person = query_person % (ssn, address, name, surname, date_of_birth, sex)
     person_id = cur.fetchone()[0]
     return [query_person, person_id]
+
+
+def create_order():
+    cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
+    doctor_id = int(cur.fetchone()[0])
+    query_order = "INSERT INTO order (doc_id) VALUES (%s) RETURNING order_id;"
+    order_id = cur.fetchone()[0]
 
 
 # inserting patients
@@ -170,41 +178,34 @@ def inserting_storekeepers():
         cur.execute(query_storekeeper % (person_id, length_of_service, salary))
         write_into_file(query_storekeeper)
 
+
 # inserting appointments
 def inserting_appointments():
-    # cur.execute("DELETE FROM appointment;")
-    for i in range(100):
-        cur.execute("SELECT person_id FROM patient ORDER BY random() LIMIT 1;")
-        patient_id = int(cur.fetchone()[0])
+    cur.execute("SELECT person_id FROM doctor;")
 
-        cur.execute("SELECT person_id FROM receptionist ORDER BY random() LIMIT 1;")
-        rec_id = int(cur.fetchone()[0])
+    doctors_id = cur.fetchall()
 
-        time = fake.date_time_between(start_date="-1d", end_date="now", tzinfo=None)
+    for doctor in doctors_id:
+        for i in range(210):
+            room = fake.random_int(min=1, max=number_of_rooms, step=1)
+            app_time = fake.date_time_between(start_date="-10y", end_date="now", tzinfo=None)
 
-        query = "INSERT INTO appointment(app_time, room, patient_id, rec_id) VALUES ('%s', '%s', '%s', '%s');"
-        cur.execute(query, (time, fake.random_int(min = 1, max = 30, step=1), patient_id, rec_id))
-        query = query % (time, fake.random_int(min = 1, max = 30, step=1), patient_id, rec_id)
-        write_into_file(query)
+            cur.execute("SELECT person_id FROM patient ORDER BY random() LIMIT 1;")
+            patient_id = int(cur.fetchone()[0])
 
+            doctor_id = doctor[0]
 
-# inserting medic_appointments
-def inserting_medic_appointments():
-    cur.execute("DELETE FROM medic_appointment;")
-    cur.execute("SELECT app_id FROM appointment ORDER BY app_id DESC LIMIT 1;")
-    last = int(cur.fetchone()[0])
-    cur.execute("SELECT app_id FROM appointment LIMIT 1;")
-    first = int(cur.fetchone()[0])
-    print(first, last)
-    for i in range(first, last+1):
-        cur.execute("SELECT person_id FROM medic ORDER BY random() LIMIT 1;")
-        medic_id = int(cur.fetchone()[0])
-        print(medic_id)
-        query = "INSERT INTO medic_appointment(app_id, medic_id) VALUES ('%s', '%s');" % \
-                (i, medic_id)
-        cur.execute(query)
-        if file_writing:
-            file_output.write(query + "\n")
+            cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
+            nurse_id = int(cur.fetchone()[0])
+
+            cur.execute("SELECT person_id FROM receptionist ORDER BY random() LIMIT 1;")
+            rec_id = int(cur.fetchone()[0])
+
+            query = "INSERT INTO appointment(app_time, room, patient_id, doctor_id, nurse_id, rec_id) " \
+                    "VALUES (%s, %s, %s, %s, %s, %s);"
+            cur.execute(query, (app_time, room, patient_id, doctor_id, nurse_id, rec_id))
+            query = query % (app_time, room, patient_id, doctor_id, nurse_id, rec_id)
+            write_into_file(query)
 
 
 # inserting medicines
@@ -227,8 +228,7 @@ def inserting_medicines():
 
 # inserting services
 def inserting_services():
-    cur.execute("DELETE FROM service;")
-    services = ["massage"]
+    services = ["massage", "healing shower", "healing with dirt", "River mud", "Magnetoturbotron", "Prostate massage"]
     for i in range(len(services)):
         service = random.choice(services)
         services.remove(service)
@@ -241,40 +241,225 @@ def inserting_services():
             file_output.write(query + "\n")
 
 
-# inserting qualifications
-def inserting_qualifications():
-    cur.execute("DELETE FROM qualifications;")
-    cur.execute("select person_id from medic;")
-    arr_medic_id = cur.fetchall()
-    qualifications = [fake.word(), fake.word(), fake.word(), fake.word()]
-    for medic_id in arr_medic_id:
-        n = fake.random_int(min=1, max=len(qualifications), step=1)
-        qualifications_set = random.sample(qualifications, n)
-        for qualification in qualifications_set:
-            query = "INSERT INTO qualifications(descrip, medic_id) VALUES ('%s', '%s');" % \
-                    (qualification, medic_id[0])
-            cur.execute(query)
-            if file_writing:
-                file_output.write(query + "\n")
+def inserting_medical_charts():
+    cur.execute("select person_id from patient;")
+    persons = cur.fetchall()
+    for person in persons:
+        query_date_of_birth = "select date_of_birth from person where person_id=%s;"
+        cur.execute(query_date_of_birth % person[0])
+        date_of_birth = cur.fetchone()[0]
+        date_chart_create = fake.date_time_between(start_date=date_of_birth, end_date="-10y", tzinfo=None)
+        query_add_chart = "insert into medical_chart(start_date, chart_id) values (%s, %s);"
+        cur.execute(query_add_chart, (date_chart_create, person[0]))
+        query_add_chart = query_add_chart % (date_chart_create, person[0])
+        write_into_file(query_add_chart)
 
 
-cur.execute("DELETE FROM patient;")
-cur.execute("DELETE FROM doctor;")
-cur.execute("DELETE FROM nurse;")
-cur.execute("DELETE FROM accountant;")
-cur.execute("DELETE FROM receptionist;")
-cur.execute("DELETE FROM storekeeper;")
-cur.execute("DELETE FROM person")
-inserting_patients()
-inserting_doctors()
-inserting_nurses()
-inserting_accountants()
-inserting_receptionists()
-inserting_storekeepers()
-inserting_medicines()
-inserting_services()
+def inserting_reports():
+    cur.execute("select chart_id, start_date from medical_chart;")
+    charts = cur.fetchall()
+
+    for chart in charts:
+        for i in range(10):
+            chart_id, chart_start_date = chart[0], chart[1]
+
+            cr_time = fake.date_time_between(start_date=chart_start_date, end_date="now", tzinfo=None)
+
+            res_cons = fake.paragraph(nb_sentences=fake.random_int(min=1, max=3, step=1), variable_nb_sentences=True, ext_word_list=None)
+            cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
+            doctor_id = int(cur.fetchone()[0])
+
+            cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
+            nurse_id = int(cur.fetchone()[0])
+
+            query = "insert into report(create_time, results_of_consultation, chart_id, doctor_id, nurse_id) " \
+                    "values (%s, %s, %s, %s, %s);"
+
+            cur.execute(query, (cr_time, res_cons, chart_id, doctor_id, nurse_id))
+            query = query % (cr_time, res_cons, chart_id, doctor_id, nurse_id)
+            write_into_file(query)
+
+
+def inserting_nurse_qual():
+    cur.execute("select person_id from nurse;")
+    nurses = cur.fetchall()
+    quals = ['qual1', 'qual2', 'qual3']
+    for nurse in nurses:
+        fake_quals = quals.copy()
+        # print(nurse[0], fake_quals)
+        for i in range(1, fake.random_int(min=1, max=3, step=1)):
+            qual = fake.word(ext_word_list=fake_quals)
+            fake_quals.remove(qual)
+            query = "insert into nurse_qualifications(descrip, person_id) values (%s, %s);"
+            cur.execute(query, (qual, nurse[0]))
+            query = query % (qual, nurse[0])
+            write_into_file(query)
+
+
+def inserting_doctor_qual():
+    cur.execute("select person_id from doctor;")
+    docs = cur.fetchall()
+    quals = ['qual1', 'qual2', 'qual3']
+    for doc in docs:
+        fake_quals = quals.copy()
+        # print(nurse[0], fake_quals)
+        for i in range(1, fake.random_int(min=1, max=3, step=1)):
+            qual = fake.word(ext_word_list=fake_quals)
+            fake_quals.remove(qual)
+            query = "insert into doctor_qualifications(descrip, person_id) values (%s, %s);"
+            cur.execute(query, (qual, doc[0]))
+            query = query % (qual, doc[0])
+            write_into_file(query)
+
+
+def inserting_nurse_assigned():
+    cur.execute("select person_id from doctor;")
+    doctors = cur.fetchall()
+    for doc in doctors:
+        doc_id = doc[0]
+        cur.execute("select person_id from nurse order by random() limit 1;")
+        nurse_id = cur.fetchone()[0]
+        query = "insert into nurse_assigned(doc_id, nurse_id) values (%s, %s);"
+        cur.execute(query, (doc_id, nurse_id))
+        query = query % (doc_id, nurse_id)
+        write_into_file(query)
+
+
+def inserting_req_med():
+    for i in range(50):
+        cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
+        doctor_id = int(cur.fetchone()[0])
+
+        cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
+        nurse_id = int(cur.fetchone()[0])
+
+        cur.execute("SELECT medicine_id FROM medicine ORDER BY random() LIMIT 1;")
+        med_id = int(cur.fetchone()[0])
+
+        query = "insert into request_medicine(doctor_id, nurse_id, medicine_id) VALUES (%s, %s, %s)"
+        cur.execute(query, (doctor_id, nurse_id, med_id))
+        query = query % (doctor_id, nurse_id, med_id)
+        write_into_file(query)
+
+
+def inserting_provide_serv():
+    for i in range(50):
+        cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
+        doctor_id = int(cur.fetchone()[0])
+
+        cur.execute("SELECT person_id FROM nurse ORDER BY random() LIMIT 1;")
+        nurse_id = int(cur.fetchone()[0])
+
+        cur.execute("SELECT service_id FROM service ORDER BY random() LIMIT 1;")
+        ser_id = int(cur.fetchone()[0])
+
+        query = "insert into provide_service(doctor_id, nurse_id, ser_id) VALUES (%s, %s, %s)"
+        cur.execute(query, (doctor_id, nurse_id, ser_id))
+        query = query % (doctor_id, nurse_id, ser_id)
+        write_into_file(query)
+
+
+def inserting_order():
+    for i in range(50):
+        cur.execute("SELECT person_id FROM doctor ORDER BY random() LIMIT 1;")
+        doctor_id = int(cur.fetchone()[0])
+        query_order = "INSERT INTO \"order\"(doc_id) VALUES (%s);"
+        cur.execute(query_order % doctor_id)
+        query_order = query_order % doctor_id
+        write_into_file(query_order)
+
+
+def inserting_order_ser():
+    cur.execute("select order_id from \"order\";")
+    orders = cur.fetchall()
+    for order in orders:
+        order_id = order[0]
+        cur.execute('select service_id from service order by random() limit 1;')
+        service_id = cur.fetchone()[0]
+        query_order_serv = "insert into order_service(order_id, service) VALUES (%s, %s);"
+        cur.execute(query_order_serv, (order_id, service_id))
+        query_order_serv = query_order_serv % (order_id, service_id)
+        write_into_file(query_order_serv)
+
+
+def inserting_order_med():
+    cur.execute("select order_id from \"order\";")
+    orders = cur.fetchall()
+    for order in orders:
+        order_id = order[0]
+        cur.execute('select medicine_id from medicine order by random() limit 1;')
+        med_id = cur.fetchone()[0]
+        query_order_serv = "insert into order_medicine(order_id, medicine) VALUES (%s, %s);"
+        cur.execute(query_order_serv, (order_id, med_id))
+        query_order_serv = query_order_serv % (order_id, med_id)
+        write_into_file(query_order_serv)
+
+
+def inserting_invoices():
+    cur.execute("select person_id from patient;")
+    patients_id = cur.fetchall()
+    cur.execute("select order_id from \"order\";")
+    orders_id = cur.fetchall()
+    for patient in patients_id:
+        for i in range(1, fake.random_int(min=1, max=3, step=1)):
+            patient_id = patient[0]
+            invoice_date = fake.date_between(start_date="-10y", end_date="today")
+            payment_due = fake.date_between(start_date=invoice_date, end_date="today")
+            tax_amount = fake.random_int(min=1, max=30, step=1)
+            order_id = random.choice(orders_id)[0]
+            cur.execute("select price from medicine;")
+            price_med = cur.fetchone()[0]
+            cur.execute("select price from service;")
+            price_ser = cur.fetchone()[0]
+            total = price_med + price_ser
+            query = "insert into invoice(patient_id, invoice_date, payment_due_date, tax_amount, total_amount, inv_id) VALUES (%s, %s, %s, %s, %s, %s);"
+            cur.execute(query, (patient_id, invoice_date, payment_due, tax_amount, total, order_id))
+            query = query % (patient_id, invoice_date, payment_due, tax_amount, total, order_id)
+            write_into_file(query)
+
+
+# cur.execute("delete from manage_invoice;")
+# cur.execute("delete from invoice;")
+# cur.execute("delete from order_medicine;")
+# cur.execute("delete from order_service;")
+# cur.execute("delete from order;")
+# cur.execute("delete from provide_service;")
+# cur.execute("delete from service;")
+# cur.execute("delete from request_medicine;")
+# cur.execute("delete from nurse_assigned;")
+# cur.execute("DELETE FROM nurse_qualifications;")
+# cur.execute("DELETE FROM doctor_qualifications;")
+# cur.execute("DELETE FROM report;")
+# cur.execute("DELETE FROM medical_chart;")
+# cur.execute("DELETE FROM patient;")
+# cur.execute("DELETE FROM doctor;")
+# cur.execute("DELETE FROM nurse;")
+# cur.execute("DELETE FROM accountant;")
+# cur.execute("DELETE FROM receptionist;")
+# cur.execute("DELETE FROM storekeeper;")
+# cur.execute("DELETE FROM person")
+# cur.execute("DELETE FROM appointment")
+# inserting_patients()
+# inserting_doctors()
+# inserting_nurses()
+# inserting_accountants()
+# inserting_receptionists()
+# inserting_storekeepers()
+# inserting_medicines()
+# inserting_services()
 # inserting_appointments()
-# inserting_qualifications()
+# inserting_medical_charts()
+# inserting_reports()
+# inserting_nurse_qual()
+# inserting_doctor_qual()
+# inserting_nurse_assigned()
+# inserting_req_med()
+# inserting_provide_serv()
+# inserting_order()
+# inserting_order_ser()
+# inserting_order_med()
+inserting_invoices()
+
 
 # Make the changes to the database persistent
 con.commit()
