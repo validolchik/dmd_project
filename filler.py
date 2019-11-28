@@ -493,6 +493,9 @@ def inserting_appointments_from_date(start, count_app):
     nurses_id = cur.fetchall()
     cur.execute("SELECT person_id FROM receptionist;")
     recs_id = cur.fetchall()
+
+    query = "INSERT INTO appointment(app_time, room, patient_id, doctor_id, nurse_id, rec_id) VALUES "
+
     for doctor in doctors_id:
         for i in range(count_app):
             room = fake.random_int(min=1, max=number_of_rooms, step=1)
@@ -504,13 +507,11 @@ def inserting_appointments_from_date(start, count_app):
             # doctor_id = random.choice(doctors_id)[0]
             doctor_id = doctor[0]
 
-            query = "INSERT INTO appointment(app_time, room, patient_id, doctor_id, nurse_id, rec_id) " \
-                    "VALUES ('%s', %s, %s, %s, %s, %s);" % (app_time, room, patient_id, doctor_id, nurse_id, rec_id)
-            cur.execute(query)
-            # query = "INSERT INTO appointment(app_time, room, patient_id, doctor_id, nurse_id, rec_id) " \
-            #         "VALUES ('%s', %s, %s, %s, %s, %s);"
-            # query = query % (app_time, room, patient_id, doctor_id, nurse_id, rec_id)
-            write_into_file(query)
+            add = "('%s', %s, %s, %s, %s, %s),\n" % (app_time, room, patient_id, doctor_id, nurse_id, rec_id)
+            query += add
+    query = query[0:(len(query) - 2)] + ";"
+    cur.execute(query)
+    write_into_file(query)
 
 
 inserting_patients()
