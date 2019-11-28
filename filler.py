@@ -220,7 +220,7 @@ def inserting_medicines():
         medicines.remove(medicine)
         price = fake.random_int(min=100, max=500, step=10)
         descr = fake.sentence()
-        add = "(%s, '%s', '%s'),\n" (price, medicine, descr)
+        add = "(%s, '%s', '%s'),\n" % (price, medicine, descr)
         query += add
 
     query = query[0:(len(query) - 2)] + ";"
