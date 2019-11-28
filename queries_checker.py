@@ -12,22 +12,18 @@ con = psycopg2.connect(
 
 cur = con.cursor()
 fake = Faker()
-# cur.execute("SELECT app_id FROM appointment ORDER BY app_id DESC LIMIT 1;")
-# print(int(cur.fetchone()[0]))
 
-# cur.execute("SELECT name, surname FROM doctor;")
-# print(cur.fetchone())
+cur.execute("delete from person;")
+ssn, address, name, surname, date_of_birth, sex = \
+        fake.itin(), fake.address(), fake.first_name_male(), \
+        fake.last_name_male(), fake.date_of_birth(tzinfo=None, minimum_age=15, maximum_age=115), 'm'
 
-# cur.execute("SELECT person_id FROM medic ORDER BY random() LIMIT 1;")
-# medic_id = int(cur.fetchone()[0])
-# print(medic_id)
-
-# cur.execute("select person_id from medic;")
-# arr_medic_id = cur.fetchall()
-# print(arr_medic_id)
-
-cur.execute("select chart_id, start_date from medical_chart;")
-print(cur.fetchall())
+address = address.replace("\n", ", ")
+query_person = "INSERT INTO person (ssn, address, name, surname, date_of_birth, sex) \
+            VALUES ('%s', '%s', '%s', '%s', '%s', '%s') RETURNING person_id;"
+cur.execute(query_person, (ssn, address, name, surname, date_of_birth, sex))
+query_person = query_person % (ssn, address, name, surname, date_of_birth, sex)
+print(query_person)
 
 # Make the changes to the database persistent
 con.commit()
